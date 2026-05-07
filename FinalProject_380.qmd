@@ -1,12 +1,107 @@
 ---
-title: "FinalProject"
+title: "STAT 380 Final Proj"
 format: html
-author: "Ankita Bhattacharyya and Cayla Stevenson"
 editor: visual
 ---
 
 ## Introduction
 
-The data-set we decided to work with today has various information about characters in Marvel's universe. Using this data, we are trying to see which variables are important in explaining a character's amount of appearances. We also want to see if 
+The Marvel Universe is one of the largest fictional communities in history. With thousands of characters created over the last 80+ years, "Appearances" serve as a key for seeing a character's success, staying power, and cultural relevance. This data is important to us as a group because it allows us to look at the stories of characters and what that may mean for their longevity in the Marvel Universe. By looking at which traits relate to a higher number of appearances, we can see what types of characters are more popular with the Marvel audience over others.
 
-## Data Provenance
+## Data Provenance - 5 W's
+
+#### Who
+
+The data was originally found on the site Marvel Wiki, an online database ran by fans of Marvel. 
+
+#### What
+
+It is a csv dataset that contains more than 16,000 characters with attributes that include their identity status, gender, year they first appeared, etc.
+
+#### Where
+
+The source is Marvel Wiki, a Marvel database that is a fan edited "encyclopedia" that documents Marvel books and Cinematic Universe (MCU) media.
+
+#### When
+
+The data includes characters from 1939 all the way to 2014, which is when the data was pulled.
+
+#### Why
+
+The data was originally collected and used to look at character diversity and the evolution of the comic company.
+
+#### How
+
+Online tools were used to pull the data about each character that is included in the dataset.
+
+#### Notes:
+
+Because the dataset was maintained by fans, some of the characters have missing data and their appearances count is based off of the number of individual book issues that a character was tagged in on the origin website.
+
+## EDA
+
+```{r}
+# 1. Load libraries and dataset
+library(tidyverse)
+
+marvel_data <- read_csv("marvel-wikia-data.csv")
+
+# 2. Data Cleaning
+marvel_clean <- marvel_data %>%
+  filter(!is.na(APPEARANCES), !is.na(Year)) %>%
+  mutate(
+    ALIGN = ifelse(is.na(ALIGN), "Unknown", ALIGN),
+    ID = ifelse(is.na(ID), "Unknown", ID),
+    SEX = ifelse(is.na(SEX), "Unknown", SEX)
+  ) %>%
+
+  mutate(across(c(ALIGN, ID, SEX), as.factor))
+
+# 3. EDA
+
+# Plot 1: Relationship between Year and Appearances (Scatter Plot)
+ggplot(marvel_clean, aes(x = Year, y = APPEARANCES)) +
+  geom_point(alpha = 0.2, color = "steelblue") +
+  geom_smooth(method = "lm", color = "red") +
+  theme_bw() +
+  labs(
+    title = "Character Appearances vs. Year of Introduction",
+    subtitle = "Older characters tend to have significantly more appearances",
+    x = "Year",
+    y = "Number of Appearances"
+  )
+
+# Plot 2: Appearances 
+ggplot(marvel_clean, aes(x = ALIGN, y = APPEARANCES, fill = ALIGN)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(
+    title = "Distribution of Appearances by Character Alignment",
+    x = "Alignment",
+    y = "Appearances (Log Scale)"
+  )
+
+# Plot 3: Summary Table
+marvel_summary <- marvel_clean %>%
+  group_by(ALIGN) %>%
+  summarise(
+    Count = n(),
+    Average_Appearances = mean(APPEARANCES),
+    Median_Appearances = median(APPEARANCES)
+  )
+
+print(marvel_summary)
+```
+
+The exploratory analysis of the Marvel dataset shows an interesting distribution for the target variable of appearances. While a large majority of characters have less than ten recorded appearances, a small elite group of super characters like Spider-Man and Captain America, feature counts in the thousands.
+
+A scatter plot of appearances with the year included gives a strong suggestion that characters introduced in the mid-20th century have naturally accumulated more exposure over time because of how long they have been around. The box plots also show that character traits such as Alignment and Identity Status may influence these counts.
+
+For example, "Good" characters with "Secret Identities" appear to have a higher average appearance vs the "Bad" or "Public" ones. This suggests that while time heavily influences character longevity, personal attributes also play a significant role. This justifies the use of both simple linear regression to capture the temporal trend and a regression tree to uncover the more complex influences of character traits.
+
+
+## Regression Based Algorithm: Multiple Linear Regression Model
+
+The first model created to be able to see which attributes are effective in predicting the amount of appearances for a character, will be created by using Multiple Linear Regression.
