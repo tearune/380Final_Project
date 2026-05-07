@@ -104,4 +104,6 @@ For example, "Good" characters with "Secret Identities" appear to have a higher 
 
 ## Regression Based Algorithm: Multiple Linear Regression Model
 
-The first model created to be able to see which attributes are effective in predicting the amount of appearances for a character, will be created by using Multiple Linear Regression.
+The first model created to be able to see which attributes are effective in predicting the amount of appearances for a character, will be created by using Multiple Linear Regression. The first regression model created from the model selection uses the attributes: `ID` (Identity of the character), `ALIGN` (Alignment of the character), `EYE` (Eye color), `SEX`, `ALIVE` (If the hero is currently alive or not), `Year` (Year of which the character was introduced).
+
+Before creating this model, some variables were deliberately removed from the model selection. The variables removed were `page_id`, `name` and `urlslug` for all being variables for identification and not actually about the characters themselves. As well as `GSM`, which gave the sexual identity of the character. This was remove due having primarily NA values for almost all the observations, and otherwise would not prove useful to include because of it.
