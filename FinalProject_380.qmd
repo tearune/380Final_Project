@@ -40,7 +40,7 @@ Because the dataset was maintained by fans, some of the characters have missing 
 
 ## EDA
 
-```{r}
+```{r, echo=FALSE}
 # 1. Load libraries and dataset
 library(tidyverse)
 
@@ -104,6 +104,80 @@ For example, "Good" characters with "Secret Identities" appear to have a higher 
 
 ## Regression Based Algorithm: Multiple Linear Regression Model
 
-The first model created to be able to see which attributes are effective in predicting the amount of appearances for a character, will be created by using Multiple Linear Regression. The first regression model created from the model selection uses the attributes: `ID` (Identity of the character), `ALIGN` (Alignment of the character), `EYE` (Eye color), `SEX`, `ALIVE` (If the hero is currently alive or not), `Year` (Year of which the character was introduced).
+The first model created to be able to see which attributes are effective in predicting the amount of appearances for a character, will be created by using Multiple Linear Regression. The process of Multiple Linear Regression is finding a model that relates the response variable, appearances of a character, to multiple different predictors linearly. Those predictors will be chosen in the process below. 
 
-Before creating this model, some variables were deliberately removed from the model selection. The variables removed were `page_id`, `name` and `urlslug` for all being variables for identification and not actually about the characters themselves. As well as `GSM`, which gave the sexual identity of the character. This was remove due having primarily NA values for almost all the observations, and otherwise would not prove useful to include because of it.
+The first regression model created from the model selection uses the attributes: `ALIGN` (Alignment of the character), `EYE` (Eye color), `ALIVE` (If the hero is currently alive or not), `Year` (Year of which the character was introduced).
+
+Before creating this model, some variables were deliberately removed from the model selection. The variables removed were `page_id`, `name` and `urlslug` for all being variables for identification and not actually about the characters themselves. As well as `GSM`, which gave the sexual identity of the character. This was remove due having primarily NA values for almost all the observations, and otherwise would not prove useful to include because of it. The observations that had NA values for the predictors that could end up in the model were also removed to be able to do the variable selection properly.
+
+After the first model, before confirming that these were the variables to be used to predict `APPEARANCES`, one of the variables had a lot of insignificant coefficients. The variable was `EYE`, which is the eye-color of the character. Due to having 23 levels within the variable, keeping the variable in the model would ultimately be prone to over fitting and also just adds too much complexity to the model.
+
+After all of the analysis and reconstruction of the model, the final model included: `ALIGN`, `ALIVE`, and `Year` as the most significant attributes in predicting the appearances of a character. The root mean square error, which describe how much the mean difference between the predicted amount of appearances and the actual appearance values, is 95.96. That means that we are off on average by 96 times less or more than a character actually showed up. Which is not a terrible margin of error.
+
+```{r, echo = FALSE, results = 'hide'}
+library(tidyverse)
+library(caret)
+
+#load data
+marvel_data <- read.csv("marvel-wikia-data.csv")
+
+#Cross Validation
+  set.seed(161) # setting seed to be able to reproduce our code
+  
+  
+#Cross Validating our dataset
+  cv <- trainControl(
+    method = "cv",
+    number = 10
+  )
+
+#base model, created from what data exploration showed to be most 
+model1_CV <- train(
+  APPEARANCES ~ Year,
+  data = marvel_data,
+  method = 'lm',
+  trControl = cv,
+  na.action = na.omit
+)
+
+#Checking the coefficients for the first model
+model1_CV$finalModel$coefficients
+
+#grabbing the rmse value
+model1_CV$results$RMSE
+
+#Model Selection using Backward Selection using AIC
+
+#removing al overvations with na values for the possible predictors
+marvel_data <- na.omit(marvel_data[,c("APPEARANCES","ID", "ALIGN", "EYE", "HAIR", "SEX", "ALIVE", "Year")])
+
+#removing page_id, name and urlslug due to irrelevancy, removing GSM due to many NA values
+full_marvel_model <- lm(APPEARANCES ~ ID+ALIGN+EYE+HAIR+SEX+ALIVE+Year, data = marvel_data)
+
+stats::step(
+  object = full_marvel_model,
+  data = marvel_data,
+  direction = "backward",
+  k = log(nrow(marvel_data)), #BIC parameter
+  trace = 1
+)
+
+#Model 2:
+model2 <- lm(APPEARANCES ~ ALIGN + EYE + ALIVE + Year, data = marvel_data)
+
+#looking at the coefficients
+#summary(model2)
+rmse2 <- sqrt(mean(model2$residuals^2))
+
+#checking the value
+#rmse2
+
+#removing EYE <- due to multiple insignificant predictors
+model3 <- lm(APPEARANCES ~ ALIGN + ALIVE + Year, data = marvel_data)
+#summary(model3)
+rmse3 <- sqrt(mean(model3$residuals^2))
+```
+
+#### Strength and Weaknesses of the Regression
+
+The main weakness of using a Multiple Linear Regression model for this data in particular is that majority of the attributes in the data set are categorical. So, trying to fit a linear relationship with so little quantitative variables makes selecting variables tough, as well as make our model less accurate because categorical variables don't have a specified quantity that is affecting the slope. This could be fixed by finding additional data with more quantitative variables such as height, or weight to create the model, however we were unable to find any suppliment data for our original data set. Strengths of the Multiple Linear Regression model, are it is a much simpler model to understand and explain. Variable selection is relatively simple and can easily be explained to someone who doesn't have much knowledge on the subject. 
